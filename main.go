@@ -17,6 +17,8 @@ import (
 
 const DEBUG = false
 
+var buf []byte
+
 type Wheel struct {
 	w, h, cw, ch, r float64
 
@@ -34,7 +36,8 @@ type Wheel struct {
 }
 
 func main() {
-	fmt.Println("HELLO: ", len(buildGif()))
+	length := buildGif()
+	fmt.Println("HELLO: ", length)
 }
 
 func NewWheel(frames, w, h, r int, colors, p []color.Color, items []string) *Wheel {
@@ -142,11 +145,16 @@ func (w *Wheel) Draw(f, delay int) {
 	w.delays = append(w.delays, delay)
 }
 
+//export getLength
+func getLength() int {
+	return len(buf)
+}
+
 // This function is exported to JavaScript, so can be called using
 // exports.multiply() in JavaScript.
 //
 //export buildGif
-func buildGif() []byte {
+func buildGif() *byte {
 	globalPalette := []color.RGBA{
 		{R: 3, G: 71, B: 50, A: 255},
 		{R: 0, G: 129, B: 72, A: 255},
@@ -217,7 +225,9 @@ func buildGif() []byte {
 		return nil
 	}
 
-	return b.Bytes()
+	buf = b.Bytes()
+
+	return &buf[0]
 }
 
 func drawLabel(img *image.Paletted, x, y int, label string, col color.Color) {
