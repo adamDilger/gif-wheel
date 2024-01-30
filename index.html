@@ -1,0 +1,27 @@
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <script src="wasm_exec.js"></script>
+  <script>
+    const go = new Go(); // Defined in wasm_exec.js
+    const WASM_URL = 'wasm.wasm';
+
+    var wasm;
+
+    WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject)
+      .then(function(obj) {
+        console.log("working", obj);
+        wasm = obj.instance;
+        // go.run(wasm);
+        console.log(wasm.exports.buildGif());
+      })
+      .catch(function(err) {
+        console.error("error", err);
+      });
+  </script>
+</head>
+
+<body></body>
+
+</html>
