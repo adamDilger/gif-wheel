@@ -9,6 +9,7 @@ import (
 	"image/draw"
 	"image/gif"
 	"math"
+	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
@@ -36,8 +37,8 @@ type Wheel struct {
 }
 
 func main() {
-	length := buildGif()
-	fmt.Println("HELLO: ", length)
+	// length := buildGif()
+	fmt.Println("HELLO: ", 1)
 }
 
 func NewWheel(frames, w, h, r int, colors, p []color.Color, items []string) *Wheel {
@@ -120,7 +121,7 @@ func (w *Wheel) Draw(f, delay int) {
 			y: int(w.ch + (w.r-50)*sm),
 		}
 
-		drawLabel(img, labelPoint.x, labelPoint.y, item, w.colors[(item_i*2)+1])
+		drawLabel(img, labelPoint.x, labelPoint.y, item, w.palette[0])
 
 		w.currentAngle += delta
 	}
@@ -145,6 +146,12 @@ func (w *Wheel) Draw(f, delay int) {
 	w.delays = append(w.delays, delay)
 }
 
+//export getPtr
+func getPtr(size int) *byte {
+	buf = make([]byte, size)
+	return &buf[0]
+}
+
 //export getLength
 func getLength() int {
 	return len(buf)
@@ -164,17 +171,11 @@ func buildGif() *byte {
 		{R: 6, G: 214, B: 160, A: 255},
 	}
 
-	items := []string{
-		"Preachers",
-		"Whaler",
-		"Jack Greene",
-		"Brick Factory",
-		"Telegraph",
-		"Botanica",
-	}
+	s := string(buf)
+	items := strings.Split(s, ",")
 	colors := make([]color.Color, 0, len(items)*2)
 	for i := range items {
-		c := globalPalette[i]
+		c := globalPalette[i%len(globalPalette)]
 		r, g, b, _ := c.RGBA()
 		colors = append(colors, c, color.RGBA{
 			uint8((255 - r) % 255),
