@@ -3,17 +3,23 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
 	"image/gif"
 	"math"
+	"net/http"
 	"strings"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 )
 
 const DEBUG = false
@@ -36,9 +42,38 @@ type Wheel struct {
 	delays []int
 }
 
+type MyEvent struct {
+	Name string `json:"name"`
+}
+
+func HandleRequest(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	itemParam := request.QueryStringParameters["items"]
+	if itemParam == "" {
+		return nil, fmt.Errorf("Missing item query parameter. Please specify the url with ?items=csv,seperated,string,of,items")
+	}
+
+	items := strings.Split(itemParam, ",")
+	if len(items) == 0 || len(items) > 20 {
+		return nil, fmt.Errorf("Invalid number of items.")
+	}
+
+	b := buildGif(items)
+	b64 := base64.StdEncoding.EncodeToString(b)
+
+	return &events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Headers: map[string]string{
+			"Content-Type":   "image/gif",
+			"Content-Length": fmt.Sprintf("%d", len(b64)),
+		},
+		Body:            b64,
+		IsBase64Encoded: true,
+	}, nil
+
+}
+
 func main() {
-	// length := buildGif()
-	fmt.Println("HELLO: ", 1)
+	lambda.Start(HandleRequest)
 }
 
 func NewWheel(frames, w, h, r int, colors, p []color.Color, items []string) *Wheel {
@@ -161,7 +196,7 @@ func getLength() int {
 // exports.multiply() in JavaScript.
 //
 //export buildGif
-func buildGif() *byte {
+func buildGif(items []string) []byte {
 	globalPalette := []color.RGBA{
 		{R: 3, G: 71, B: 50, A: 255},
 		{R: 0, G: 129, B: 72, A: 255},
@@ -171,8 +206,6 @@ func buildGif() *byte {
 		{R: 6, G: 214, B: 160, A: 255},
 	}
 
-	s := string(buf)
-	items := strings.Split(s, ",")
 	colors := make([]color.Color, 0, len(items)*2)
 	for i := range items {
 		c := globalPalette[i%len(globalPalette)]
@@ -226,9 +259,7 @@ func buildGif() *byte {
 		return nil
 	}
 
-	buf = b.Bytes()
-
-	return &buf[0]
+	return b.Bytes()
 }
 
 func drawLabel(img *image.Paletted, x, y int, label string, col color.Color) {
